@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ghost.fullname" . }}
+  labels:
+    {{- include "ghost.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "ghost.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "ghost.fullname" . }}
+        orgname: {{ .Values.labels.organization | default "unknown-org" }}
+    spec:
+      containers:
+        - name: ghost
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 2368
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          env:
+            - name: url
+              value: "https://{{ index .Values.ingress.hosts 0 "host" | default "example.com" }}"
+
+            - name: database__client
+              value: "sqlite3"
+
+            - name: database__connection__filename
+              value: "/var/lib/ghost/content/data/ghost.db"
+
+            - name: NODE_ENV
+              value: "production"
+
+          volumeMounts:
+            - name: ghost-data
+              mountPath: /var/lib/ghost/content
+
+      volumes:
+        - name: ghost-data
+          persistentVolumeClaim:
+            claimName: {{ include "ghost.fullname" . }}-pvc

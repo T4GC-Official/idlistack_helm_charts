@@ -1,0 +1,26 @@
+image:
+  repository: ghost
+  tag: "5"
+
+storage:
+  size: 1Gi
+
+database:
+  client: sqlite3
+  connection:
+    filename: /var/lib/ghost/content/data/ghost.db
+
+labels:
+  organization: default-org
+  environment: development
+  appType: ghost_sqlite
+  region: in-central
+
+ingress:
+  enabled: true
+  hosts:
+    - host:  #Add domain
+  tls:
+    - secretName:  #Add domain
+      hosts:
+        -  #Add domain
