@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ghost
+description: Helm chart for Ghost CMS using MySQL and Longhorn, with multi-tenant labeling
+type: application
+version: 0.2.0
+appVersion: "5.86.0"
