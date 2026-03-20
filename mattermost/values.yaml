@@ -1,0 +1,27 @@
+image:
+  repository: mattermost/mattermost-team-edition
+  tag: "9.5"
+
+storage:
+  size: 10Gi
+
+database:
+  client: mysql
+  mysql:
+    database: mattermost
+    user: mmuser
+    password: strongpassword
+    rootPassword: rootstrongpassword
+
+labels:
+  organization: default-org
+  environment: production
+  appType: mattermost_mysql_single_pod
+  region: in-central
+
+ingress:
+  enabled: true
+  hosts:
+    - host: ""   # e.g. chat.example.com
+  tls:
+    - secretName: "" 

@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mattermost.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "mattermost.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "mattermost.fullname" . }}
+        orgname: {{ .Values.labels.organization }}
+    spec:
+
+      # ✅ FIX: init container (DO NOT REMOVE)
+      initContainers:
+        - name: init-volume
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /data/mysql
+              mkdir -p /data/mattermost
+              chown -R 999:999 /data/mysql
+              chown -R 2000:2000 /data/mattermost
+          volumeMounts:
+            - name: mattermost-data
+              mountPath: /data
+
+      containers:
+
+        # -------------------- #
+        # MYSQL
+        # -------------------- #
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: {{ .Values.database.mysql.rootPassword | quote }}
+            - name: MYSQL_DATABASE
+              value: {{ .Values.database.mysql.database | quote }}
+            - name: MYSQL_USER
+              value: {{ .Values.database.mysql.user | quote }}
+            - name: MYSQL_PASSWORD
+              value: {{ .Values.database.mysql.password | quote }}
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: mattermost-data
+              mountPath: /var/lib/mysql
+              subPath: mysql
+
+        # -------------------- #
+        # MATTERMOST
+        # -------------------- #
+        - name: mattermost
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 8065
+          env:
+            - name: MM_SERVICESETTINGS_SITEURL
+              value: {{ printf "https://%s" (required "ingress.hosts[0].host is required" (index .Values.ingress.hosts 0).host) | quote }}
+
+            - name: MM_SQLSETTINGS_DRIVERNAME
+              value: mysql
+
+            - name: MM_SQLSETTINGS_DATASOURCE
+              value: "{{ .Values.database.mysql.user }}:{{ .Values.database.mysql.password }}@tcp(127.0.0.1:3306)/{{ .Values.database.mysql.database }}?charset=utf8mb4,utf8&readTimeout=30s&writeTimeout=30s"
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+
+          volumeMounts:
+            - name: mattermost-data
+              mountPath: /mattermost/data
+              subPath: mattermost
+
+      volumes:
+        - name: mattermost-data
+          persistentVolumeClaim:
+            claimName: {{ include "mattermost.fullname" . }}-pvc
