@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "listmonk.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "listmonk.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "listmonk.fullname" . }}
+    spec:
+      containers:
+        - name: listmonk
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 9000
+
+          command:
+            - sh
+            - -c
+            - |
+              ./listmonk --install --idempotent --yes --config '' &&
+              ./listmonk --upgrade --yes --config '' &&
+              ./listmonk --config ''
+
+          env:
+            - name: LISTMONK_db__host
+              value: {{ .Values.database.postgres.host | quote }}
+            - name: LISTMONK_db__port
+              value: {{ .Values.database.postgres.port | quote }}
+            - name: LISTMONK_db__user
+              value: {{ .Values.database.postgres.user | quote }}
+            - name: LISTMONK_db__password
+              value: {{ .Values.database.postgres.password | quote }}
+            - name: LISTMONK_db__database
+              value: {{ .Values.database.postgres.db | quote }}
+            - name: LISTMONK_db__ssl_mode
+              value: disable
+            - name: LISTMONK_app__address
+              value: 0.0.0.0:9000
+            - name: LISTMONK_app__public_url
+              value: {{ printf "https://%s" (index .Values.ingress.hosts 0 "host") | quote }}
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+          volumeMounts:
+            - name: listmonk-data
+              mountPath: /listmonk/data
+
+      volumes:
+        - name: listmonk-data
+          persistentVolumeClaim:
+            claimName: {{ include "listmonk.fullname" . }}-pvc

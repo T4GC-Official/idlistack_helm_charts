@@ -1,0 +1,28 @@
+image:
+  repository: listmonk/listmonk
+  tag: "latest"
+
+storage:
+  size: 5Gi
+  storageClass: longhorn   # use production-ready storage
+
+database:
+  postgres:
+    db: listmonk
+    user: listmonk
+    password: supersecurepassword
+    host: listmonk-postgres
+    port: 5432
+
+labels:
+  organization: default-org
+  environment: production
+  appType: listmonk
+  region: in-central
+
+ingress:
+  enabled: true
+  hosts:
+    - host: "" #add domain
+  tls:
+    - secretName: ""
