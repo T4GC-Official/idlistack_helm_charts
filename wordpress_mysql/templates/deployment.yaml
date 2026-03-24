@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wordpress.fullname" . }}
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress-mysql
+  template:
+    metadata:
+      labels:
+        app: wordpress-mysql
+    spec:
+      containers:
+
+      # ---------------- WORDPRESS ----------------
+      - name: wordpress
+        image: "{{ .Values.image.wordpress.repository }}:{{ .Values.image.wordpress.tag }}"
+        ports:
+          - containerPort: 80
+        env:
+          - name: WORDPRESS_DB_HOST
+            value: "{{ .Values.database.mysql.host }}:{{ .Values.database.mysql.port }}"
+          - name: WORDPRESS_DB_USER
+            value: "{{ .Values.database.mysql.user }}"
+          - name: WORDPRESS_DB_PASSWORD
+            value: "{{ .Values.database.mysql.password }}"
+          - name: WORDPRESS_DB_NAME
+            value: "{{ .Values.database.mysql.db }}"
+          - name: WORDPRESS_CONFIG_EXTRA
+            value: |
+              define('WP_HOME','https://{{ index .Values.ingress.hosts 0 "host" | default "example.com" }}');
+              define('WP_SITEURL','https://{{ index .Values.ingress.hosts 0 "host" | default "example.com" }}');
+        volumeMounts:
+          - name: wordpress-storage
+            mountPath: /var/www/html
+
+      # ---------------- MYSQL ----------------
+      - name: mysql
+        image: "{{ .Values.image.mysql.repository }}:{{ .Values.image.mysql.tag }}"
+        ports:
+          - containerPort: 3306
+        env:
+          - name: MYSQL_DATABASE
+            value: "{{ .Values.database.mysql.db }}"
+          - name: MYSQL_USER
+            value: "{{ .Values.database.mysql.user }}"
+          - name: MYSQL_PASSWORD
+            value: "{{ .Values.database.mysql.password }}"
+          - name: MYSQL_ROOT_PASSWORD
+            value: "{{ .Values.database.mysql.rootPassword }}"
+        volumeMounts:
+          - name: mysql-storage
+            mountPath: /var/lib/mysql
+
+      # ---------------- VOLUMES ----------------
+      volumes:
+        - name: wordpress-storage
+          persistentVolumeClaim:
+            claimName: {{ include "wordpress.fullname" . }}-wordpress-pvc
+
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: {{ include "wordpress.fullname" . }}-mysql-pvc

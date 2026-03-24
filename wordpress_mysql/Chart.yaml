@@ -1,0 +1,6 @@
+apiVersion: v2
+name: wordpress-mysql
+description: WordPress with MySQL (single pod setup)
+type: application
+version: 0.1.0
+appVersion: "6.4"
