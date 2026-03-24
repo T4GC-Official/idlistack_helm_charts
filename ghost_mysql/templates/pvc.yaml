@@ -1,7 +1,22 @@
+# --- Ghost PVC ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "ghost.fullname" . }}-pvc
+  name: {{ include "ghost.fullname" . }}-ghost-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+
+---
+# --- MySQL PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ghost.fullname" . }}-mysql-pvc
 spec:
   accessModes:
     - ReadWriteOnce
