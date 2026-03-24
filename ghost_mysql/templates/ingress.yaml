@@ -24,7 +24,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "ghost.fullname" $ }}-service   # Changed . to $
+                name: {{ include "ghost.fullname" $ }}-service
                 port:
                   number: 80
     {{- end }}
