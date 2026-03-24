@@ -3,8 +3,11 @@ kind: Service
 metadata:
   name: {{ include "ghost.fullname" . }}-service
 spec:
+  type: ClusterIP
   selector:
     app: {{ include "ghost.fullname" . }}
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 2368
+      protocol: TCP
