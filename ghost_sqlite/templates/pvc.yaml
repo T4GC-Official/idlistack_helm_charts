@@ -3,12 +3,17 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ include "ghost.fullname" . }}-pvc
   labels:
-    {{- include "ghost.labels" . | nindent 4 }}
+    app.kubernetes.io/name: ghost
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    organization: {{ .Values.labels.organization }}
+    environment: {{ .Values.labels.environment }}
+    appType: {{ .Values.labels.appType }}
+    region: {{ .Values.labels.region }}
 spec:
   accessModes:
-    - ReadWriteOnce  # Use ReadWriteMany only if Longhorn RWX is enabled
+    - ReadWriteOnce
   resources:
     requests:
       storage: {{ .Values.storage.size | default "1Gi" }}
-  storageClassName: longhorn
+  storageClassName: local-path
   volumeMode: Filesystem
