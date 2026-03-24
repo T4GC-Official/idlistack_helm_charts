@@ -14,31 +14,41 @@ spec:
         orgname: {{ .Values.labels.organization }}
     spec:
 
-      # ✅ FIX: init container (DO NOT REMOVE)
+      # INIT CONTAINER (simplified)
       initContainers:
-        - name: init-volume
+        - name: init-mysql
           image: busybox
-          command:
-            - sh
-            - -c
-            - |
-              mkdir -p /data/mysql
-              mkdir -p /data/mattermost
-              chown -R 999:999 /data/mysql
-              chown -R 2000:2000 /data/mattermost
+          command: ["sh", "-c", "chown -R 999:999 /var/lib/mysql"]
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+
+        - name: init-mattermost
+          image: busybox
+          command: ["sh", "-c", "chown -R 2000:2000 /mattermost/data"]
           volumeMounts:
             - name: mattermost-data
-              mountPath: /data
+              mountPath: /mattermost/data
 
       containers:
 
-        # -------------------- #
-        # MYSQL
-        # -------------------- #
+        # ---------------- MYSQL ----------------
         - name: mysql
           image: mysql:8.0
           ports:
             - containerPort: 3306
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - mysqladmin ping -h 127.0.0.1 -u root -p${MYSQL_ROOT_PASSWORD}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+
           env:
             - name: MYSQL_ROOT_PASSWORD
               value: {{ .Values.database.mysql.rootPassword | quote }}
@@ -48,25 +58,34 @@ spec:
               value: {{ .Values.database.mysql.user | quote }}
             - name: MYSQL_PASSWORD
               value: {{ .Values.database.mysql.password | quote }}
+
           resources:
             requests:
-              cpu: "250m"
-              memory: "512Mi"
+              cpu: {{ .Values.resources.mysql.requests.cpu }}
+              memory: {{ .Values.resources.mysql.requests.memory }}
             limits:
-              cpu: "500m"
-              memory: "1Gi"
-          volumeMounts:
-            - name: mattermost-data
-              mountPath: /var/lib/mysql
-              subPath: mysql
+              cpu: {{ .Values.resources.mysql.limits.cpu }}
+              memory: {{ .Values.resources.mysql.limits.memory }}
 
-        # -------------------- #
-        # MATTERMOST
-        # -------------------- #
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+
+        # ---------------- MATTERMOST ----------------
         - name: mattermost
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
             - containerPort: 8065
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8065
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+
           env:
             - name: MM_SERVICESETTINGS_SITEURL
               value: {{ printf "https://%s" (required "ingress.hosts[0].host is required" (index .Values.ingress.hosts 0).host) | quote }}
@@ -79,18 +98,21 @@ spec:
 
           resources:
             requests:
-              cpu: "500m"
-              memory: "1Gi"
+              cpu: {{ .Values.resources.mattermost.requests.cpu }}
+              memory: {{ .Values.resources.mattermost.requests.memory }}
             limits:
-              cpu: "1"
-              memory: "2Gi"
+              cpu: {{ .Values.resources.mattermost.limits.cpu }}
+              memory: {{ .Values.resources.mattermost.limits.memory }}
 
           volumeMounts:
             - name: mattermost-data
               mountPath: /mattermost/data
-              subPath: mattermost
 
       volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: {{ include "mattermost.fullname" . }}-mysql-pvc
+
         - name: mattermost-data
           persistentVolumeClaim:
-            claimName: {{ include "mattermost.fullname" . }}-pvc
+            claimName: {{ include "mattermost.fullname" . }}-mattermost-pvc
