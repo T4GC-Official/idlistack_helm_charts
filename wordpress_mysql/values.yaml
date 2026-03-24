@@ -8,7 +8,7 @@ image:
 
 storage:
   size: 2Gi
-  storageClass: longhorn   # use your server storage (longhorn or default)
+  storageClass: local-path  
 
 database:
   mysql:
@@ -19,6 +19,23 @@ database:
     host: 127.0.0.1
     port: 3306
 
+resources:
+  wordpress:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  mysql:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
 labels:
   organization: default-org
   environment: production
@@ -28,7 +45,7 @@ labels:
 ingress:
   enabled: true
   hosts:
-    - host: ""   #replace with your domain
+    - host: ""   # replace with your domain
   tls:
     - secretName: your-domain-tls
       hosts:
