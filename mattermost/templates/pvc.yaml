@@ -1,7 +1,22 @@
+# --- MySQL PVC ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "mattermost.fullname" . }}-pvc
+  name: {{ include "mattermost.fullname" . }}-mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+  storageClassName: local-path
+
+---
+# --- Mattermost PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "mattermost.fullname" . }}-mattermost-pvc
 spec:
   accessModes:
     - ReadWriteOnce
