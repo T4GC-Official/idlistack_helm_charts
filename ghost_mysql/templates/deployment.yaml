@@ -35,10 +35,21 @@ spec:
               value: {{ .Values.database.mysql.password | quote }}
           ports:
             - containerPort: 3306
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - mysqladmin ping -h 127.0.0.1 -u root -p${MYSQL_ROOT_PASSWORD}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+
           volumeMounts:
-            - name: ghost-data
+            - name: mysql-data
               mountPath: /var/lib/mysql
-              subPath: mysql
 
         # --- GHOST CONTAINER ---
         - name: ghost
@@ -71,11 +82,25 @@ spec:
               value: "production"
           ports:
             - containerPort: 2368
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 2368
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+
           volumeMounts:
             - name: ghost-data
               mountPath: /var/lib/ghost/content
-              subPath: ghost
+
       volumes:
         - name: ghost-data
           persistentVolumeClaim:
-            claimName: {{ include "ghost.fullname" . }}-pvc
+            claimName: {{ include "ghost.fullname" . }}-ghost-pvc
+
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: {{ include "ghost.fullname" . }}-mysql-pvc
