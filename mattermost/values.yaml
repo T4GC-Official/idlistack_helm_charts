@@ -4,7 +4,7 @@ image:
 
 storage:
   size: 10Gi
-
+  storageClass: longhorn  
 database:
   client: mysql
   mysql:
@@ -13,7 +13,6 @@ database:
     password: strongpassword
     rootPassword: rootstrongpassword
 
-# ✅ NEW
 resources:
   mattermost:
     requests:
