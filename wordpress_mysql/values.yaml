@@ -8,7 +8,7 @@ image:
 
 storage:
   size: 2Gi
-  storageClass: local-path  
+  storageClass: longhorn 
 
 database:
   mysql:
