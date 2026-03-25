@@ -14,16 +14,19 @@ spec:
         orgname: {{ .Values.labels.organization }}
     spec:
       containers:
+
         # --- MYSQL SIDE CAR ---
         - name: mysql
           image: {{ .Values.mysql.image }}
+
           resources:
             requests:
-              cpu: 250m
-              memory: 512Mi
+              cpu: {{ .Values.resources.mysql.requests.cpu }}
+              memory: {{ .Values.resources.mysql.requests.memory }}
             limits:
-              cpu: 1
-              memory: 1Gi
+              cpu: {{ .Values.resources.mysql.limits.cpu }}
+              memory: {{ .Values.resources.mysql.limits.memory }}
+
           env:
             - name: MYSQL_ROOT_PASSWORD
               value: {{ .Values.database.mysql.rootPassword | quote }}
@@ -33,6 +36,7 @@ spec:
               value: {{ .Values.database.mysql.user | quote }}
             - name: MYSQL_PASSWORD
               value: {{ .Values.database.mysql.password | quote }}
+
           ports:
             - containerPort: 3306
 
@@ -54,13 +58,15 @@ spec:
         # --- GHOST CONTAINER ---
         - name: ghost
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
           resources:
             requests:
-              cpu: 200m
-              memory: 256Mi
+              cpu: {{ .Values.resources.ghost.requests.cpu }}
+              memory: {{ .Values.resources.ghost.requests.memory }}
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: {{ .Values.resources.ghost.limits.cpu }}
+              memory: {{ .Values.resources.ghost.limits.memory }}
+
           env:
             - name: database__client
               value: "mysql"
@@ -80,6 +86,7 @@ spec:
               value: "https://{{ (index .Values.ingress.hosts 0).host }}"
             - name: NODE_ENV
               value: "production"
+
           ports:
             - containerPort: 2368
 
