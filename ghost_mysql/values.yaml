@@ -15,6 +15,23 @@ database:
     user: ghost
     password: ghostpass
 
+resources:
+  ghost:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  mysql:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+
 labels:
   organization: default-org
   environment: production
