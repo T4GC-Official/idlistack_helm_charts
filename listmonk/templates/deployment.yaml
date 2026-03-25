@@ -12,7 +12,60 @@ spec:
       labels:
         app: {{ include "listmonk.fullname" . }}
     spec:
+
+      initContainers:
+        - name: init-postgres
+          image: busybox
+          command: ["sh", "-c", "chown -R 999:999 /var/lib/postgresql/data"]
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+
+        - name: init-listmonk
+          image: busybox
+          command: ["sh", "-c", "chown -R 1000:1000 /listmonk/data"]
+          volumeMounts:
+            - name: listmonk-data
+              mountPath: /listmonk/data
+
       containers:
+
+        # ---------------- POSTGRES ----------------
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.database.postgres.user | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.database.postgres.password | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.database.postgres.db | quote }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.resources.postgres.requests.cpu }}
+              memory: {{ .Values.resources.postgres.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.postgres.limits.cpu }}
+              memory: {{ .Values.resources.postgres.limits.memory }}
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U {{ .Values.database.postgres.user }} -d {{ .Values.database.postgres.db }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+
+        # ---------------- LISTMONK ----------------
         - name: listmonk
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
@@ -28,7 +81,7 @@ spec:
 
           env:
             - name: LISTMONK_db__host
-              value: {{ .Values.database.postgres.host | quote }}
+              value: "127.0.0.1"
             - name: LISTMONK_db__port
               value: {{ .Values.database.postgres.port | quote }}
             - name: LISTMONK_db__user
@@ -44,6 +97,14 @@ spec:
             - name: LISTMONK_app__public_url
               value: {{ printf "https://%s" (index .Values.ingress.hosts 0 "host") | quote }}
 
+          resources:
+            requests:
+              cpu: {{ .Values.resources.listmonk.requests.cpu }}
+              memory: {{ .Values.resources.listmonk.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.listmonk.limits.cpu }}
+              memory: {{ .Values.resources.listmonk.limits.memory }}
+
           readinessProbe:
             httpGet:
               path: /health
@@ -56,6 +117,10 @@ spec:
               mountPath: /listmonk/data
 
       volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: {{ include "listmonk.fullname" . }}-postgres-pvc
+
         - name: listmonk-data
           persistentVolumeClaim:
-            claimName: {{ include "listmonk.fullname" . }}-pvc
+            claimName: {{ include "listmonk.fullname" . }}-listmonk-pvc
