@@ -1,7 +1,22 @@
+# --- Listmonk PVC ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "listmonk.fullname" . }}-pvc
+  name: {{ include "listmonk.fullname" . }}-listmonk-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.storage.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+
+---
+# --- Postgres PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "listmonk.fullname" . }}-postgres-pvc
 spec:
   accessModes:
     - ReadWriteOnce
