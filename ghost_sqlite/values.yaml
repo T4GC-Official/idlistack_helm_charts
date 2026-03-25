@@ -4,6 +4,7 @@ image:
 
 storage:
   size: 1Gi
+  storageClass: longhorn
 
 database:
   client: sqlite3
@@ -19,8 +20,8 @@ labels:
 ingress:
   enabled: true
   hosts:
-    - host:  #Add domain
+    - host:
   tls:
-    - secretName:  #Add domain
+    - secretName:
       hosts:
-        -  #Add domain
+        -
