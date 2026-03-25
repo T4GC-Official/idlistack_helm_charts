@@ -4,15 +4,32 @@ image:
 
 storage:
   size: 5Gi
-  storageClass: longhorn   # use production-ready storage
+  storageClass: longhorn
 
 database:
   postgres:
     db: listmonk
     user: listmonk
     password: supersecurepassword
-    host: listmonk-postgres
+    host: 127.0.0.1
     port: 5432
+
+resources:
+  listmonk:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+  postgres:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
 
 labels:
   organization: default-org
@@ -23,6 +40,6 @@ labels:
 ingress:
   enabled: true
   hosts:
-    - host: "" #add domain
+    - host: ""
   tls:
     - secretName: ""
