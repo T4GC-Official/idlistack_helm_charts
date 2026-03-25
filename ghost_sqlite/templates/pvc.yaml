@@ -15,5 +15,5 @@ spec:
   resources:
     requests:
       storage: {{ .Values.storage.size | default "1Gi" }}
-  storageClassName: local-path
+  storageClassName: {{ .Values.storage.storageClass }}
   volumeMode: Filesystem
