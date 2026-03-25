@@ -7,7 +7,7 @@ mysql:
 
 storage:
   size: 1Gi
-  storageClass: longhorn   # ✅ added for Longhorn support
+  storageClass: longhorn 
 
 database:
   mysql:
