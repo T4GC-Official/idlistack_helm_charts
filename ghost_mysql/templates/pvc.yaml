@@ -6,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: {{ .Values.storage.storageClass }}
   resources:
     requests:
       storage: {{ .Values.storage.size }}
@@ -20,7 +20,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: {{ .Values.storage.storageClass }}
   resources:
     requests:
       storage: {{ .Values.storage.size }}
