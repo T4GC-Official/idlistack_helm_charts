@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wordpress.fullname" . }}-config
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+data:
+  WORDPRESS_DB_HOST: "{{ .Values.database.mysql.host }}:{{ .Values.database.mysql.port }}"
+  WORDPRESS_DB_NAME: "{{ .Values.database.mysql.database }}"
+  WORDPRESS_DB_USER: "{{ .Values.database.mysql.user }}"
+  WORDPRESS_TABLE_PREFIX: "wp_"
+  WORDPRESS_DEBUG: "false"

@@ -1,25 +1,32 @@
-{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.enabled -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "wordpress.fullname" . }}-ingress
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+  name: {{ include "wordpress.fullname" . }}
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
 spec:
-  ingressClassName: traefik   #use nginx if your cluster uses it
+  {{- if .Values.ingress.tls }}
   tls:
+    {{- range .Values.ingress.tls }}
     - hosts:
-        - {{ index .Values.ingress.hosts 0 "host" }}
-      secretName: {{ index .Values.ingress.tls 0 "secretName" }}
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
   rules:
-    - host: {{ index .Values.ingress.hosts 0 "host" }}
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: {{ include "wordpress.fullname" . }}
+                name: {{ include "wordpress.fullname" $ }}
                 port:
-                  number: 80
+                  number: {{ $.Values.service.port }}
+    {{- end }}
 {{- end }}

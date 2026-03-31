@@ -1,34 +1,20 @@
+---
+# -- Replica count
+replicaCount: 1
+
 image:
   wordpress:
     repository: wordpress
-    tag: "latest"
+    tag: "6.4"
+    pullPolicy: IfNotPresent
   mysql:
     repository: mysql
     tag: "8.0"
 
-storage:
-  size: 2Gi
-  storageClass: longhorn 
-
-database:
-  mysql:
-    db: wordpress
-    user: wordpress
-    password: wordpress
-    rootPassword: rootpassword
-    host: 127.0.0.1
-    port: 3306
-
-resources:
-  wordpress:
-    requests:
-      cpu: "250m"
-      memory: "256Mi"
-    limits:
-      cpu: "500m"
-      memory: "512Mi"
-
-  mysql:
+# -- WordPress specific configuration
+wordpress:
+  port: 80
+  resources:
     requests:
       cpu: "250m"
       memory: "512Mi"
@@ -36,17 +22,67 @@ resources:
       cpu: "500m"
       memory: "1Gi"
 
+# -- MySQL database configuration
+mysql:
+  port: 3306
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+# -- Database configuration
+database:
+  mysql:
+    database: wordpress
+    user: wordpress
+    password: ""  # Set via Kubernetes Secret
+    rootPassword: ""  # Set via Kubernetes Secret
+    host: 127.0.0.1
+    port: 3306
+
+# -- Storage configuration
+storage:
+  wordpressSize: 10Gi
+  mysqlSize: 20Gi
+  storageClass: longhorn
+
+# -- Standard Kubernetes labels
 labels:
   organization: default-org
   environment: production
-  appType: wordpress
+  appType: wordpress_mysql
   region: in-central
 
+# -- Ingress configuration
 ingress:
   enabled: true
   hosts:
-    - host: ""   # replace with your domain
+    - host: #Add Domain
   tls:
-    - secretName: your-domain-tls
+    - secretName: #Add Domain
       hosts:
-        - ""
+        - #Add Domain
+
+# -- Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+# -- ServiceAccount configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Pod annotations
+podAnnotations: {}
+
+# -- Pod security context
+podSecurityContext: {}
+
+# -- Security context for containers
+securityContext: {}

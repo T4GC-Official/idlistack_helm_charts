@@ -1,25 +1,30 @@
-{{- if .Values.storage.size }}
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ .Release.Name }}-wordpress-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: {{ .Values.storage.storageClass }}
-  resources:
-    requests:
-      storage: {{ .Values.storage.size }}
 ---
+# WordPress Data PVC
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ .Release.Name }}-mysql-pvc
+  name: {{ include "wordpress.fullname" . }}-wordpress
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: {{ .Values.storage.storageClass }}
   resources:
     requests:
-      storage: {{ .Values.storage.size }}
-{{- end }}
+      storage: {{ .Values.storage.wordpressSize }}
+---
+# MySQL Data PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "wordpress.fullname" . }}-mysql
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.storage.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.mysqlSize }}

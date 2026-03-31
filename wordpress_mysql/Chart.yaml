@@ -1,6 +1,21 @@
 apiVersion: v2
 name: wordpress-mysql
-description: WordPress with MySQL (single pod setup)
+description: A production-ready WordPress Helm chart with MySQL database sidecar
 type: application
-version: 0.1.0
+version: 1.0.0
 appVersion: "6.4"
+home: https://github.com/idlistack/wordpress-mysql
+icon: https://raw.githubusercontent.com/wordpress/wordpress.org/master/public_html/wp-content/themes/wordpress.org/images/wordpress-logo.svg
+keywords:
+  - wordpress
+  - cms
+  - mysql
+  - blog
+  - longhorn
+maintainers:
+  - name: IDLIStack Team
+    email: support@idlistack.io
+sources:
+  - https://github.com/idlistack/wordpress-mysql
+  - https://github.com/WordPress/WordPress
+  - https://github.com/mysql/mysql-docker

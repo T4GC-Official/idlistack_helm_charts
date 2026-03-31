@@ -1,132 +1,68 @@
-# WordPress + MySQL Helm Chart
+# WordPress MySQL Helm Chart
 
-## Overview
+A production-ready Helm chart for deploying WordPress with MySQL sidecar database on Kubernetes.
 
-This Helm chart deploys a **WordPress application with a MySQL database** on Kubernetes.
+## Quick Start
 
-The chart creates a **single Pod containing two containers**:
+### Install the Chart
 
-* WordPress container
-* MySQL container
-
-WordPress connects to MySQL using **localhost** because both containers run inside the same pod.
-
-The chart also provisions **PersistentVolumeClaims (PVC)** to store WordPress data and MySQL database files.
-
----
-
-## Architecture
-
-Deployment
-└── Pod
-  ├── WordPress Container (port 80)
-  └── MySQL Container (port 3306)
-
-Persistent Storage
-
-* wordpress-pvc → stores WordPress files
-* mysql-pvc → stores MySQL database
-
-Service
-
-* NodePort service exposes WordPress to the browser
-
-Ingress
-
-* Optional and controlled using `values.yaml`
-
----
-
-## Prerequisites
-
-* Kubernetes cluster (Minikube recommended for local testing)
-* Helm 3 installed
-* kubectl configured
-
----
-
-## Installation
-
-Install the Helm chart:
-
-```
-helm install wordpress .
+```bash
+helm install wordpress . \
+  --set ingress.hosts[0].host=wordpress.example.com \
+  --set database.mysql.password=your-db-password \
+  --set database.mysql.rootPassword=your-root-password
 ```
 
-Upgrade the release:
+### Uninstall the Chart
 
-```
-helm upgrade wordpress .
-```
-
-Uninstall the release:
-
-```
+```bash
 helm uninstall wordpress
 ```
 
----
+## Values
 
-## Access the Application
+### Image Configuration
+- `image.wordpress.repository`: WordPress image repository (default: `wordpress`)
+- `image.wordpress.tag`: WordPress image tag (default: `6.4`)
+- `image.mysql.repository`: MySQL image repository (default: `mysql`)
+- `image.mysql.tag`: MySQL image tag (default: `8.0`)
 
-Expose the service using Minikube:
+### WordPress Settings
+- `wordpress.port`: WordPress listen port (default: `80`)
+- `wordpress.resources`: CPU and memory resource limits and requests
 
-```
-minikube service wordpress
-```
+### Database Configuration
+- `database.mysql.database`: Database name (default: `wordpress`)
+- `database.mysql.user`: Database user (default: `wordpress`)
+- `database.mysql.password`: Database password (required)
+- `database.mysql.rootPassword`: MySQL root password (required)
 
-This will open WordPress in your browser.
+### Storage
+- `storage.wordpressSize`: WordPress content storage size (default: `10Gi`)
+- `storage.mysqlSize`: MySQL data storage size (default: `20Gi`)
+- `storage.storageClass`: Storage class name (default: `longhorn`)
 
----
+### Ingress
+- `ingress.enabled`: Enable ingress (default: `true`)
+- `ingress.hosts[0].host`: Hostname for ingress
+- `ingress.tls[0].secretName`: TLS certificate secret name
 
-## Configuration
+### Service
+- `service.type`: Service type (default: `ClusterIP`)
+- `service.port`: Service port (default: `80`)
+- `service.targetPort`: Target port (default: `80`)
 
-Configuration values can be modified in `values.yaml`.
+## Architecture
 
-Example:
+The chart uses a **sidecar pattern** where WordPress and MySQL run in the same pod.
 
-```
-wordpress:
-  image:
-    repository: wordpress
-    tag: latest
+## Prerequisites
 
-mysql:
-  image:
-    repository: mysql
-    tag: "8.0"
+- Kubernetes 1.19+
+- Helm 3.0+
+- Longhorn or equivalent persistent volume provider
+- Traefik ingress controller (for ingress)
 
-persistence:
-  enabled: true
-  size: 1Gi
-```
+## License
 
----
-
-## Persistent Storage
-
-The chart creates two PersistentVolumeClaims:
-
-* **wordpress-pvc** – stores WordPress uploads, plugins, and themes
-* **mysql-pvc** – stores MySQL database files
-
-This ensures data persists even if the pod restarts.
-
----
-
-## Ingress
-
-Ingress is optional and disabled by default.
-
-Enable it in `values.yaml`:
-
-```
-ingress:
-  enabled: true
-```
-
----
-
-## Maintainer
-
-Maintained as part of the **WordPress Helm deployment project**.
+This Helm chart is licensed under the MIT License. See the `LICENSE` file for more details.

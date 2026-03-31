@@ -5,103 +5,110 @@ metadata:
   labels:
     {{- include "wordpress.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: wordpress-mysql
+      {{- include "wordpress.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
-        app: wordpress-mysql
+        {{- include "wordpress.selectorLabels" . | nindent 8 }}
     spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "wordpress.fullname" . }}
       containers:
-
-      # ---------------- WORDPRESS ----------------
+      # WordPress Container
       - name: wordpress
         image: "{{ .Values.image.wordpress.repository }}:{{ .Values.image.wordpress.tag }}"
+        imagePullPolicy: {{ .Values.image.wordpress.pullPolicy }}
         ports:
-          - containerPort: 80
-
+        - name: http
+          containerPort: {{ .Values.wordpress.port }}
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: {{ include "wordpress.fullname" . }}-config
+        env:
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "wordpress.fullname" . }}-secret
+              key: wordpress-db-password
+        - name: WORDPRESS_CONFIG_EXTRA
+          value: |
+            define('WP_HOME','https://wordpress.example.com');
+            define('WP_SITEURL','https://wordpress.example.com');
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /
-            port: 80
+            port: http
           initialDelaySeconds: 20
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 5
-
-        env:
-          - name: WORDPRESS_DB_HOST
-            value: "{{ .Values.database.mysql.host }}:{{ .Values.database.mysql.port }}"
-          - name: WORDPRESS_DB_USER
-            value: "{{ .Values.database.mysql.user }}"
-          - name: WORDPRESS_DB_PASSWORD
-            value: "{{ .Values.database.mysql.password }}"
-          - name: WORDPRESS_DB_NAME
-            value: "{{ .Values.database.mysql.db }}"
-          - name: WORDPRESS_CONFIG_EXTRA
-            value: |
-              define('WP_HOME','https://{{ index .Values.ingress.hosts 0 "host" | default "example.com" }}');
-              define('WP_SITEURL','https://{{ index .Values.ingress.hosts 0 "host" | default "example.com" }}');
-
+          periodSeconds: 5
         resources:
-          requests:
-            cpu: {{ .Values.resources.wordpress.requests.cpu }}
-            memory: {{ .Values.resources.wordpress.requests.memory }}
-          limits:
-            cpu: {{ .Values.resources.wordpress.limits.cpu }}
-            memory: {{ .Values.resources.wordpress.limits.memory }}
-
+          {{- toYaml .Values.wordpress.resources | nindent 12 }}
         volumeMounts:
-          - name: wordpress-storage
-            mountPath: /var/www/html
-
-      # ---------------- MYSQL ----------------
+        - name: wordpress-data
+          mountPath: /var/www/html
+      # MySQL Sidecar Container
       - name: mysql
         image: "{{ .Values.image.mysql.repository }}:{{ .Values.image.mysql.tag }}"
         ports:
-          - containerPort: 3306
-
+        - name: mysql
+          containerPort: {{ .Values.mysql.port }}
+          protocol: TCP
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "wordpress.fullname" . }}-secret
+              key: mysql-root-password
+        - name: MYSQL_DATABASE
+          value: "{{ .Values.database.mysql.database }}"
+        - name: MYSQL_USER
+          value: "{{ .Values.database.mysql.user }}"
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "wordpress.fullname" . }}-secret
+              key: mysql-password
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD
+          initialDelaySeconds: 30
+          periodSeconds: 10
         readinessProbe:
           exec:
             command:
-              - sh
-              - -c
-              - mysqladmin ping -h 127.0.0.1 -u root -p${MYSQL_ROOT_PASSWORD}
+            - /bin/sh
+            - -c
+            - mysql -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD -e 'SELECT 1'
           initialDelaySeconds: 20
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 5
-
-        env:
-          - name: MYSQL_DATABASE
-            value: "{{ .Values.database.mysql.db }}"
-          - name: MYSQL_USER
-            value: "{{ .Values.database.mysql.user }}"
-          - name: MYSQL_PASSWORD
-            value: "{{ .Values.database.mysql.password }}"
-          - name: MYSQL_ROOT_PASSWORD
-            value: "{{ .Values.database.mysql.rootPassword }}"
-
+          periodSeconds: 5
         resources:
-          requests:
-            cpu: {{ .Values.resources.mysql.requests.cpu }}
-            memory: {{ .Values.resources.mysql.requests.memory }}
-          limits:
-            cpu: {{ .Values.resources.mysql.limits.cpu }}
-            memory: {{ .Values.resources.mysql.limits.memory }}
-
+          {{- toYaml .Values.mysql.resources | nindent 12 }}
         volumeMounts:
-          - name: mysql-storage
-            mountPath: /var/lib/mysql
-
-      # ---------------- VOLUMES ----------------
+        - name: mysql-data
+          mountPath: /var/lib/mysql
       volumes:
-        - name: wordpress-storage
-          persistentVolumeClaim:
-            claimName: {{ include "wordpress.fullname" . }}-wordpress-pvc
-
-        - name: mysql-storage
-          persistentVolumeClaim:
-            claimName: {{ include "wordpress.fullname" . }}-mysql-pvc
+      - name: wordpress-data
+        persistentVolumeClaim:
+          claimName: {{ include "wordpress.fullname" . }}-wordpress
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: {{ include "wordpress.fullname" . }}-mysql
