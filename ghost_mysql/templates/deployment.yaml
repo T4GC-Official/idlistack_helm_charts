@@ -2,44 +2,60 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "ghost.fullname" . }}
+  labels:
+    {{- include "ghost.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "ghost.fullname" . }}
+      {{- include "ghost.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- if .Values.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
-        app: {{ include "ghost.fullname" . }}
-        orgname: {{ .Values.labels.organization }}
+        {{- include "ghost.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
       containers:
-
         # --- MYSQL SIDE CAR ---
         - name: mysql
           image: {{ .Values.mysql.image }}
-
+          {{- if .Values.securityContext }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- end }}
           resources:
             requests:
-              cpu: {{ .Values.resources.mysql.requests.cpu }}
-              memory: {{ .Values.resources.mysql.requests.memory }}
+              cpu: {{ .Values.mysql.resources.requests.cpu }}
+              memory: {{ .Values.mysql.resources.requests.memory }}
             limits:
-              cpu: {{ .Values.resources.mysql.limits.cpu }}
-              memory: {{ .Values.resources.mysql.limits.memory }}
-
+              cpu: {{ .Values.mysql.resources.limits.cpu }}
+              memory: {{ .Values.mysql.resources.limits.memory }}
           env:
             - name: MYSQL_ROOT_PASSWORD
-              value: {{ .Values.database.mysql.rootPassword | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost.fullname" . }}-secret
+                  key: mysql-root-password
             - name: MYSQL_DATABASE
               value: {{ .Values.database.mysql.database | quote }}
             - name: MYSQL_USER
               value: {{ .Values.database.mysql.user | quote }}
             - name: MYSQL_PASSWORD
-              value: {{ .Values.database.mysql.password | quote }}
-
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost.fullname" . }}-secret
+                  key: mysql-password
           ports:
-            - containerPort: 3306
-
+            - name: mysql
+              containerPort: {{ .Values.mysql.port }}
+              protocol: TCP
           readinessProbe:
             exec:
               command:
@@ -50,7 +66,6 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
-
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
@@ -58,15 +73,18 @@ spec:
         # --- GHOST CONTAINER ---
         - name: ghost
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.securityContext }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- end }}
           resources:
             requests:
-              cpu: {{ .Values.resources.ghost.requests.cpu }}
-              memory: {{ .Values.resources.ghost.requests.memory }}
+              cpu: {{ .Values.ghost.resources.requests.cpu }}
+              memory: {{ .Values.ghost.resources.requests.memory }}
             limits:
-              cpu: {{ .Values.resources.ghost.limits.cpu }}
-              memory: {{ .Values.resources.ghost.limits.memory }}
-
+              cpu: {{ .Values.ghost.resources.limits.cpu }}
+              memory: {{ .Values.ghost.resources.limits.memory }}
           env:
             - name: database__client
               value: "mysql"
@@ -75,39 +93,44 @@ spec:
             - name: database__connection__user
               value: {{ .Values.database.mysql.user | quote }}
             - name: database__connection__password
-              value: {{ .Values.database.mysql.password | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost.fullname" . }}-secret
+                  key: mysql-password
             - name: database__connection__database
               value: {{ .Values.database.mysql.database | quote }}
             - name: database__connection__port
-              value: "3306"
+              value: {{ .Values.mysql.port | quote }}
             - name: database__connection__reconnect
               value: "true"
-            - name: url
-              value: "https://{{ (index .Values.ingress.hosts 0).host }}"
             - name: NODE_ENV
-              value: "production"
-
+              value: {{ .Values.ghost.nodeEnv | quote }}
           ports:
-            - containerPort: 2368
-
+            - name: http
+              containerPort: {{ .Values.ghost.port }}
+              protocol: TCP
           readinessProbe:
             httpGet:
               path: /
-              port: 2368
+              port: http
             initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
-
           volumeMounts:
             - name: ghost-data
               mountPath: /var/lib/ghost/content
+            - name: ghost-config
+              mountPath: /var/lib/ghost/config.production.json
+              subPath: config.production.json
 
       volumes:
         - name: ghost-data
           persistentVolumeClaim:
             claimName: {{ include "ghost.fullname" . }}-ghost-pvc
-
         - name: mysql-data
           persistentVolumeClaim:
             claimName: {{ include "ghost.fullname" . }}-mysql-pvc
+        - name: ghost-config
+          configMap:
+            name: {{ include "ghost.fullname" . }}-config

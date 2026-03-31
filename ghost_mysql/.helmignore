@@ -1,0 +1,26 @@
+# Patterns to ignore when building packages.
+# This supports shell glob patterns, relative path patterns, and
+# patterns with double asterisks '**'.
+# For more information: https://helm.sh/docs/chart_template_guide/helm_ignore_patterns/
+
+.DS_Store
+.git
+.gitignore
+.bzr
+.bzrignore
+.hg
+.hgignore
+.svn
+*.swp
+*.swo
+*~
+.idea
+*.iml
+.vscode
+*.swp
+*.iml
+.env
+.idea/
+dist/
+vendor/
+.vscode/

@@ -1,7 +1,10 @@
+{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "ghost.fullname" . }}-ingress
+  labels:
+    {{- include "ghost.labels" . | nindent 4 }}
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     kubernetes.io/ingress.class: traefik
@@ -26,5 +29,6 @@ spec:
               service:
                 name: {{ include "ghost.fullname" $ }}-service
                 port:
-                  number: 80
+                  number: {{ $.Values.service.port }}
     {{- end }}
+{{- end }}

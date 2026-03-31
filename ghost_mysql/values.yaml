@@ -1,23 +1,17 @@
+---
+# -- Replica count (not used in current sidecar setup, reserved for future)
+replicaCount: 1
+
 image:
   repository: ghost
   tag: "5"
+  pullPolicy: IfNotPresent
 
-mysql:
-  image: mysql:8.0
-
-storage:
-  size: 1Gi
-  storageClass: longhorn 
-
-database:
-  mysql:
-    rootPassword: rootpass
-    database: ghost
-    user: ghost
-    password: ghostpass
-
-resources:
-  ghost:
+# -- Ghost specific configuration
+ghost:
+  port: 2368
+  nodeEnv: production
+  resources:
     requests:
       cpu: "200m"
       memory: "256Mi"
@@ -25,7 +19,11 @@ resources:
       cpu: "500m"
       memory: "512Mi"
 
-  mysql:
+# -- MySQL database configuration
+mysql:
+  image: mysql:8.0
+  port: 3306
+  resources:
     requests:
       cpu: "250m"
       memory: "512Mi"
@@ -33,12 +31,28 @@ resources:
       cpu: "1"
       memory: "1Gi"
 
+# -- Database credentials
+database:
+  mysql:
+    rootPassword: ""  # Set via Kubernetes Secret or external secret management
+    database: ghost
+    user: ghost
+    password: ""  # Set via Kubernetes Secret or external secret management
+
+# -- Storage configuration
+storage:
+  ghostSize: 1Gi
+  mysqlSize: 2Gi
+  storageClass: longhorn
+
+# -- Standard Kubernetes labels for all resources
 labels:
   organization: default-org
   environment: production
   appType: ghost_mysql
   region: in-central
 
+# -- Ingress configuration
 ingress:
   enabled: true
   hosts:
@@ -47,3 +61,24 @@ ingress:
     - secretName: #Add Domain
       hosts:
         -  #Add Domain
+
+# -- Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 2368
+
+# -- ServiceAccount configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Pod annotations
+podAnnotations: {}
+
+# -- Pod security context
+podSecurityContext: {}
+
+# -- Security context for containers
+securityContext: {}

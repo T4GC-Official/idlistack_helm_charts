@@ -1,52 +1,149 @@
-# Ghost Helm Deployment (MySQL – Single Pod)
+# Ghost CMS Helm Chart
 
-This Helm chart deploys **Ghost CMS** in Kubernetes using:
+Deploy Ghost CMS with MySQL database in Kubernetes using Helm.
 
-* A **single pod** containing:
+## What's Included
 
-  * Ghost application
+- **Ghost CMS** - Blogging platform
+- **MySQL Database** - Database backend
+- **Persistent Storage** - For Ghost content and database
+- **ConfigMap** - Ghost configuration
+- **Secrets** - Database credentials
+- **Ingress** - Optional TLS-enabled web access
 
-  * MySQL database (sidecar)
+## Prerequisites
 
-* Persistent storage for:
+- Kubernetes cluster (v1.19+)
+- Helm 3+
+- Storage provisioner (Longhorn, EBS, NFS, etc.)
 
-  * Ghost content
+## Quick Start
 
-  * MySQL data
+### 1. Set Required Passwords
 
-* Optional **Ingress with TLS** using **Traefik + cert-manager**
-
-* ConfigMap-based `config.production.json` for:
-
-  * Canonical URL
-
-  * Database configuration
-
-  * Log rotation
-
-* Resource limits suitable for production workloads
-
-## 📁 Directory Structure
-
-```
-ghost_mysql/
-├── Chart.yaml
-├── values.yaml
-├── templates/
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── ingress.yaml
-│   ├── pvc.yaml
-│   ├── configmap.yaml
-│   └── _helpers.tpl
-└── README.md
+```bash
+export MYSQL_ROOT_PASS="your-mysql-root-password"
+export MYSQL_USER_PASS="your-mysql-user-password"
 ```
 
-## ⚙ Prerequisites
+### 2. Deploy to Kubernetes
 
-### Required (Local & Production)
+```bash
+helm install ghost ./ghost_mysql \
+  --namespace ghost \
+  --create-namespace \
+  --set database.mysql.rootPassword=$MYSQL_ROOT_PASS \
+  --set database.mysql.password=$MYSQL_USER_PASS
+```
 
-* Kubernetes cluster
+### 3. Access Ghost
+
+Get the service IP:
+```bash
+kubectl get svc -n ghost
+```
+
+Port-forward to access locally:
+```bash
+kubectl port-forward -n ghost svc/ghost-ghost-service 8080:80
+```
+
+Then open: **http://localhost:8080**
+
+## Configure Domain & TLS (Optional)
+
+To enable HTTPS with your domain:
+
+```bash
+helm install ghost ./ghost_mysql \
+  --namespace ghost \
+  --create-namespace \
+  --set database.mysql.rootPassword=$MYSQL_ROOT_PASS \
+  --set database.mysql.password=$MYSQL_USER_PASS \
+  --set ingress.enabled=true \
+  --set "ingress.hosts[0].host=blog.yourdomain.com" \
+  --set "ingress.tls[0].secretName=ghost-tls" \
+  --set "ingress.tls[0].hosts[0]=blog.yourdomain.com"
+```
+
+## Customization
+
+### Change Storage Sizes
+
+```bash
+--set storage.ghostSize=5Gi \
+--set storage.mysqlSize=10Gi
+```
+
+### Change Resource Limits
+
+```bash
+--set ghost.resources.requests.cpu=500m \
+--set ghost.resources.limits.memory=1Gi \
+--set mysql.resources.requests.cpu=500m
+```
+
+### Use Custom Config File
+
+Create `custom-values.yaml`:
+
+```yaml
+database:
+  mysql:
+    rootPassword: "secure-root-pass"
+    password: "secure-user-pass"
+
+storage:
+  ghostSize: 5Gi
+  mysqlSize: 10Gi
+
+labels:
+  organization: my-org
+  environment: production
+```
+
+Then deploy:
+```bash
+helm install ghost ./ghost_mysql --namespace ghost --create-namespace -f custom-values.yaml
+```
+
+## Common Commands
+
+**Check deployment status:**
+```bash
+kubectl get all -n ghost
+```
+
+**View logs:**
+```bash
+kubectl logs -n ghost deployment/ghost-ghost -c ghost
+kubectl logs -n ghost deployment/ghost-ghost -c mysql
+```
+
+**Upgrade deployment:**
+```bash
+helm upgrade ghost ./ghost_mysql \
+  --namespace ghost \
+  --set database.mysql.rootPassword=$MYSQL_ROOT_PASS \
+  --set database.mysql.password=$MYSQL_USER_PASS
+```
+
+**Delete deployment:**
+```bash
+helm uninstall ghost --namespace ghost
+```
+
+## Architecture
+
+Single pod with 2 containers:
+- **Ghost Container** - CMS application on port 2368
+- **MySQL Container** - Database on port 3306
+
+Both share persistent storage for data persistence.
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.
 
 * Helm v3+
 

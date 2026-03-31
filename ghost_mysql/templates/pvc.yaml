@@ -3,13 +3,15 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ include "ghost.fullname" . }}-ghost-pvc
+  labels:
+    {{- include "ghost.labels" . | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: {{ .Values.storage.storageClass }}
   resources:
     requests:
-      storage: {{ .Values.storage.size }}
+      storage: {{ .Values.storage.ghostSize }}
 
 ---
 # --- MySQL PVC ---
@@ -17,10 +19,12 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ include "ghost.fullname" . }}-mysql-pvc
+  labels:
+    {{- include "ghost.labels" . | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: {{ .Values.storage.storageClass }}
   resources:
     requests:
-      storage: {{ .Values.storage.size }}
+      storage: {{ .Values.storage.mysqlSize }}
