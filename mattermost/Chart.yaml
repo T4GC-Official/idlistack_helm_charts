@@ -1,6 +1,19 @@
 apiVersion: v2
 name: mattermost
-description: Mattermost single-pod deployment with MySQL
+description: Helm chart for Mattermost team collaboration server with MySQL database
 type: application
 version: 0.1.0
 appVersion: "9.5.1"
+home: https://github.com/idlistack/mattermost
+icon: https://www.mattermost.org/wp-content/uploads/2023/01/Mattermost-icon.png
+keywords:
+  - mattermost
+  - collaboration
+  - messaging
+  - mysql
+  - longhorn
+maintainers:
+  - name: idlistack
+    email: support@idlistack.io
+sources:
+  - https://github.com/idlistack/mattermost

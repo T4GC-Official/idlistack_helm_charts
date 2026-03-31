@@ -1,20 +1,17 @@
+---
+# -- Replica count
+replicaCount: 1
+
 image:
   repository: mattermost/mattermost-team-edition
   tag: "9.5"
+  pullPolicy: IfNotPresent
 
-storage:
-  size: 10Gi
-  storageClass: longhorn  
-database:
-  client: mysql
-  mysql:
-    database: mattermost
-    user: mmuser
-    password: strongpassword
-    rootPassword: rootstrongpassword
-
-resources:
-  mattermost:
+# -- Mattermost specific configuration
+mattermost:
+  port: 8065
+  nodeEnv: production
+  resources:
     requests:
       cpu: "500m"
       memory: "1Gi"
@@ -22,7 +19,11 @@ resources:
       cpu: "1"
       memory: "2Gi"
 
-  mysql:
+# -- MySQL database configuration
+mysql:
+  image: mysql:8.0
+  port: 3306
+  resources:
     requests:
       cpu: "250m"
       memory: "512Mi"
@@ -30,15 +31,55 @@ resources:
       cpu: "500m"
       memory: "1Gi"
 
+# -- Database configuration
+database:
+  client: mysql
+  mysql:
+    database: mattermost
+    user: mmuser
+    password: ""  # Set via Kubernetes Secret
+    rootPassword: ""  # Set via Kubernetes Secret
+
+# -- Storage configuration
+storage:
+  mattermostSize: 10Gi
+  mysqlSize: 20Gi
+  storageClass: longhorn
+
+# -- Standard Kubernetes labels
 labels:
   organization: default-org
   environment: production
-  appType: mattermost_mysql_single_pod
+  appType: mattermost_mysql
   region: in-central
 
+# -- Ingress configuration
 ingress:
   enabled: true
   hosts:
-    - host: ""
+    - host: #Add Domain
   tls:
-    - secretName: ""
+    - secretName: #Add Domain
+      hosts:
+        -  #Add Domain
+
+# -- Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8065
+
+# -- ServiceAccount configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Pod annotations
+podAnnotations: {}
+
+# -- Pod security context
+podSecurityContext: {}
+
+# -- Security context for containers
+securityContext: {}

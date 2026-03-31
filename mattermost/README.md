@@ -1,274 +1,103 @@
-# Mattermost Helm Deployment (Single-Pod, MySQL Sidecar)
+# Mattermost Helm Chart
 
-This Helm chart deploys **Mattermost Team Edition** in Kubernetes using:
+A production-ready Helm chart for deploying Mattermost team collaboration server on Kubernetes with MySQL sidecar database.
 
-* A **single pod** containing:
+## Quick Start
 
-  * Mattermost application
+### Install the Chart
 
-  * MySQL database (sidecar)
-
-* Persistent storage for Mattermost data and MySQL
-
-* Optional **Ingress with TLS** using **Traefik + cert-manager**
-
-* Resource limits suitable for production
-
-## 📁 Directory Structure
-
-```
-mattermost/
-├── Chart.yaml
-├── values.yaml
-├── templates/
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── ingress.yaml
-│   ├── pvc.yaml
-│   └── _helpers.tpl
-└── README.md
+```bash
+helm install mattermost . \
+  --set ingress.hosts[0].host=mattermost.example.com \
+  --set database.mysql.password=your-db-password \
+  --set database.mysql.rootPassword=your-root-password
 ```
 
-## ⚙ Prerequisites
+### Uninstall the Chart
 
-### Required (Local & Production)
-
-* Kubernetes cluster
-
-* Helm v3+
-
-* Default StorageClass configured
-
-### Required for Ingress
-
-* Traefik Ingress Controller
-
-* cert-manager
-
-* ClusterIssuer named:
-
-```
-letsencrypt-prod
+```bash
+helm uninstall mattermost
 ```
 
-## 🚀 Local Setup (No Ingress)
+## Values
 
-This setup uses **port-forwarding** and does not require a domain.
+### Image Configuration
+- `image.repository`: Mattermost image repository (default: `mattermost/mattermost-team-edition`)
+- `image.tag`: Mattermost image tag (default: `9.5`)
+- `image.pullPolicy`: Image pull policy (default: `IfNotPresent`)
 
-### 1⃣ Deploy Mattermost
+### Mattermost Settings
+- `mattermost.port`: Mattermost listen port (default: `8065`)
+- `mattermost.nodeEnv`: Node environment (default: `production`)
+- `mattermost.resources`: CPU and memory resource limits and requests
 
-```
-helm upgrade --install mattermost . \
-  -n mattermost \
-  --create-namespace
-```
+### Database Configuration
+- `database.client`: Database client type (default: `mysql`)
+- `database.mysql.database`: Database name (default: `mattermost`)
+- `database.mysql.user`: Database user (default: `mmuser`)
+- `database.mysql.password`: Database password (required)
+- `database.mysql.rootPassword`: MySQL root password (required)
 
-Verify pods:
+### Storage
+- `storage.mattermostSize`: Mattermost data storage size (default: `10Gi`)
+- `storage.mysqlSize`: MySQL data storage size (default: `20Gi`)
+- `storage.storageClass`: Storage class name (default: `longhorn`)
 
-```
-kubectl get pods -n mattermost
-```
+### Ingress
+- `ingress.enabled`: Enable ingress (default: `true`)
+- `ingress.hosts[0].host`: Hostname for ingress
+- `ingress.tls[0].secretName`: TLS certificate secret name
+- `ingress.tls[0].hosts`: TLS hostnames
 
-Both containers should be **Running (2/2)**.
+### Service
+- `service.type`: Service type (default: `ClusterIP`)
+- `service.port`: Service port (default: `80`)
+- `service.targetPort`: Target port for the service (default: `8065`)
 
-### 2⃣ Access Mattermost Locally
+## Architecture
 
-Port-forward the service:
+The chart uses a **sidecar pattern** where Mattermost and MySQL run in the same pod:
 
-```
-kubectl port-forward svc/mattermost-mattermost-service \
-  -n mattermost \
-  8065:80
-```
+- **Mattermost Container**: Serves the application on port 8065
+- **MySQL Container**: Provides the database on port 3306
 
-Open in browser:
+This design simplifies deployment for development environments and small deployments. For production environments with scaling requirements, consider using an external managed MySQL database.
 
-```
-http://localhost:8065
-```
+## Storage
 
-You should see the **Mattermost setup screen**.
+Two separate PersistentVolumeClaims are created:
+- Mattermost data (default 10Gi): Configuration files, uploads, and local data
+- MySQL data (default 20Gi): Database storage
 
-### 3⃣ View Logs
+## Configuration
 
-Mattermost logs:
+The chart uses a ConfigMap for Mattermost configuration and a Secret for sensitive credentials:
 
-```
-kubectl logs -n mattermost deploy/mattermost-mattermost -c mattermost
-```
+- **ConfigMap**: `mattermost-config` contains the server configuration
+- **Secret**: `mattermost-secret` contains database credentials
 
-MySQL logs:
+## Prerequisites
 
-```
-kubectl logs -n mattermost deploy/mattermost-mattermost -c mysql
-```
+- Kubernetes 1.19+
+- Helm 3.0+
+- Longhorn or equivalent persistent volume provider
+- Traefik ingress controller (for ingress)
 
-## 🌐 Production Setup (Ingress + TLS)
+## Supported Kubernetes Versions
 
-### 1⃣ DNS Configuration
+- 1.19+
+- 1.20+
+- 1.21+
+- 1.22+
+- 1.23+
+- 1.24+
 
-Create an **A record** pointing to your cluster LoadBalancer:
+## Limitations
 
-```
-chat.example.com  -->  <LOAD_BALANCER_IP>
-```
+- Single-pod deployment with MySQL sidecar is not suitable for horizontal scaling
+- MySQL sidecar is recommended only for development and small deployments
+- For production use, consider deploying MySQL separately or using cloud-managed databases
 
-### 2️⃣ Update `values.yaml`
+## License
 
-```
-ingress:
-  enabled: true
-  hosts:
-    - host: chat.example.com
-  tls:
-    - secretName: mattermost-tls
-```
-
-⚠️ The domain **must match** the canonical URL used by Mattermost.
-
-### 3⃣ Ingress Details
-
-Ingress configuration:
-
-* Ingress Class: `traefik`
-
-* TLS handled by `cert-manager`
-
-* ClusterIssuer: `letsencrypt-prod`
-
-* Path: `/`
-
-* Backend Service: `mattermost-mattermost-service`
-
-* Backend Port: `80 → 8065`
-
-Ingress annotations:
-
-```
-annotations:
-  cert-manager.io/cluster-issuer: letsencrypt-prod
-```
-
-### 4️⃣ Deploy with Ingress Enabled
-
-```
-helm upgrade --install mattermost . -n mattermost
-```
-
-Verify ingress:
-
-```
-kubectl get ingress -n mattermost
-kubectl describe ingress -n mattermost
-```
-
-Access once TLS is ready:
-
-```
-https://chat.example.com
-```
-
-## 🔐 Canonical URL (IMPORTANT)
-
-Mattermost **requires a static canonical URL**.
-
-Configured in `deployment.yaml`:
-
-```
-- name: MM_SERVICESETTINGS_SITEURL
-  value: "https://chat.example.com"
-```
-
-❌ Do NOT dynamically reference ingress values\
-✅ Must exactly match the ingress host
-
-## 💾 Storage
-
-| Component  | Path             | Purpose               |
-| ---------- | ---------------- | --------------------- |
-| MySQL      | /var/lib/mysql   | Database storage      |
-| Mattermost | /mattermost/data | File uploads & assets |
-
-PVC is shared using `subPath`.
-
-## 📦 Resource Limits (Production Defaults)
-
-### Mattermost
-
-```
-resources:
-  requests:
-    cpu: 500m
-    memory: 1Gi
-  limits:
-    cpu: 1
-    memory: 2Gi
-```
-
-### MySQL
-
-```
-resources:
-  requests:
-    cpu: 250m
-    memory: 512Mi
-  limits:
-    cpu: 500m
-    memory: 1Gi
-```
-
-Suitable for **small to medium teams**.
-
-## 🧪 Health & Networking
-
-* Service exposes port `80` mapped to container `8065`
-
-* Mattermost listens on `:8065`
-
-* Kubernetes manages pod restarts automatically
-
-## 🛠 Troubleshooting
-
-### Port-forward connection refused
-
-* Ensure Service `targetPort` is `8065`
-
-* Ensure Mattermost container is running
-
-### Ingress TLS not ready
-
-* DNS must point to cluster LoadBalancer
-
-* cert-manager must be installed
-
-* `letsencrypt-prod` ClusterIssuer must exist
-
-### Blank page or redirect issues
-
-* Verify `MM_SERVICESETTINGS_SITEURL`
-
-* Domain must match ingress host exactly
-
-## 🚧 Production Recommendations
-
-For larger or critical deployments:
-
-* Use **external MySQL** (RDS / CloudSQL)
-
-* Use **S3-compatible storage** for files
-
-* Enable **Horizontal Pod Autoscaler**
-
-* Separate MySQL into its own StatefulSet
-
-* Manage Mattermost config via ConfigMap
-
-## ✅ Status
-
-This Helm chart is suitable for:
-
-* Local development
-
-* Small production environments
-
-* Single-node or multi-node Kubernetes clusters
+This Helm chart is licensed under the MIT License. See the `LICENSE` file for more details.

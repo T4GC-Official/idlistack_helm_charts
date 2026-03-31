@@ -1,26 +1,30 @@
-# --- MySQL PVC ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "mattermost.fullname" . }}-mysql-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ .Values.storage.size }}
-  storageClassName: {{ .Values.storage.storageClass }}
-
 ---
-# --- Mattermost PVC ---
+# Mattermost Data PVC
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "mattermost.fullname" . }}-mattermost-pvc
+  name: {{ include "mattermost.fullname" . }}-mattermost
+  labels:
+    {{- include "mattermost.labels" . | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: {{ .Values.storage.storageClass }}
   resources:
     requests:
-      storage: {{ .Values.storage.size }}
+      storage: {{ .Values.storage.mattermostSize }}
+---
+# MySQL Data PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "mattermost.fullname" . }}-mysql
+  labels:
+    {{- include "mattermost.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
   storageClassName: {{ .Values.storage.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.mysqlSize }}

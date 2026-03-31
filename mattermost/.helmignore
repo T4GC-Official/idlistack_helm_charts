@@ -1,0 +1,50 @@
+# Patterns to ignore when building packages.
+# This supports shell glob patterns.
+#
+# Common VCS dirs
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+# Common backup files
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.swp
+*.swp~
+# Ignore helm-related files
+.idea/
+*.sublime-project
+*.sublime-workspace
+# Ignore IDE files
+.vscode
+.idea/
+# Ignore OS files
+.DS_Store
+# Ignore generated files
+*.log
+# Ignore temporary files
+*~
+# Ignore local development files
+local/
+.env
+.env.local
+# Ignore test files
+test/
+tests/
+.test/
+# Ignore build artifacts
+dist/
+build/
+# Ignore documentation files (if not needed in chart)
+docs/
+*.md
+# Ignore examples
+examples/
+# Ignore node_modules (if any)
+node_modules/

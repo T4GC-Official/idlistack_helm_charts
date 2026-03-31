@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mattermost.fullname" . }}
+  labels:
+    {{- include "mattermost.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mattermost.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "mattermost.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "mattermost.fullname" . }}
+      containers:
+      # Mattermost Container
+      - name: mattermost
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.mattermost.port }}
+          protocol: TCP
+        env:
+        - name: MM_SERVICESETTINGS_SITEURL
+          value: "https://mattermost.example.com"
+        - name: MM_SQLSETTINGS_DRIVERNAME
+          value: "{{ .Values.database.client }}"
+        - name: MM_SQLSETTINGS_DATASOURCE
+          value: "{{ .Values.database.mysql.user }}:$(MYSQL_PASSWORD)@tcp(localhost:{{ .Values.mysql.port }})/{{ .Values.database.mysql.database }}?charset=utf8mb4,utf8&parseTime=true&loc=Local"
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "mattermost.fullname" . }}-secret
+              key: mysql-password
+        - name: TZ
+          value: "UTC"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        resources:
+          {{- toYaml .Values.mattermost.resources | nindent 12 }}
+        volumeMounts:
+        - name: mattermost-data
+          mountPath: /mattermost/data
+        - name: mattermost-logs
+          mountPath: /mattermost/logs
+      # MySQL Sidecar Container
+      - name: mysql
+        image: "{{ .Values.mysql.image }}"
+        ports:
+        - name: mysql
+          containerPort: {{ .Values.mysql.port }}
+          protocol: TCP
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "mattermost.fullname" . }}-secret
+              key: mysql-root-password
+        - name: MYSQL_DATABASE
+          value: "{{ .Values.database.mysql.database }}"
+        - name: MYSQL_USER
+          value: "{{ .Values.database.mysql.user }}"
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "mattermost.fullname" . }}-secret
+              key: mysql-password
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - mysql -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD -e 'SELECT 1'
+          initialDelaySeconds: 20
+          periodSeconds: 5
+        resources:
+          {{- toYaml .Values.mysql.resources | nindent 12 }}
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mattermost-data
+        persistentVolumeClaim:
+          claimName: {{ include "mattermost.fullname" . }}-mattermost
+      - name: mattermost-logs
+        emptyDir: {}
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: {{ include "mattermost.fullname" . }}-mysql
