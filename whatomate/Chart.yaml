@@ -1,0 +1,30 @@
+apiVersion: v2
+name: whatomate
+description: WhatoMate - WhatsApp Bot Integration with CRM Synchronization
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - whatomate
+  - whatsapp
+  - bot
+  - crm
+  - integration
+  - postgresql
+  - redis
+home: https://github.com/idlistack/whatomate
+icon: https://github.com/PrasanaKumarA/WhatoMate/raw/main/assets/icon.png
+sources:
+  - https://github.com/PrasanaKumarA/WhatoMate
+  - https://github.com/postgres/postgres
+  - https://github.com/redis/redis
+maintainers:
+  - name: IDLIStack Team
+    email: support@idlistack.in
+dependencies:
+  - name: postgresql
+    version: 15.1.5
+    repository: oci://registry.oci.io/bitnami
+  - name: redis
+    version: 18.1.2
+    repository: oci://registry.oci.io/bitnami

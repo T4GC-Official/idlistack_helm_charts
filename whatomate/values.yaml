@@ -1,0 +1,125 @@
+# WhatoMate Helm Chart Values
+# WhatsApp Bot Integration with CRM Synchronization
+
+replicaCount: 1
+
+# Image configuration
+image:
+  whatomate:
+    repository: shridh0r/whatomate
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+# WhatoMate application settings
+whatomate:
+  port: 8080
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# Database configuration
+database:
+  host: "{{ .Release.Name }}-postgresql"
+  port: 5432
+  name: whatomate
+  user: whatomate
+  password: changeme
+  sslMode: disable
+  maxOpenConns: 25
+  maxIdleConns: 5
+  connMaxLifetime: 300
+
+# Redis configuration
+redis:
+  host: "{{ .Release.Name }}-redis-master"
+  port: 6379
+  username: ""
+  password: ""
+  db: 0
+  tls: false
+
+# Storage configuration
+storage:
+  size: 10Gi
+  storageClass: longhorn
+  type: local
+  localPath: /app/uploads
+
+# Labels for resource identification
+labels:
+  organization: default-org
+  environment: production
+  appType: whatomate
+  region: in-central
+
+# Ingress configuration
+ingress:
+  enabled: true
+  hosts:
+    - host: ""
+  tls:
+    - secretName: ""
+      hosts: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+# Service account
+serviceAccount:
+  create: true
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext: {}
+
+# Container security context
+securityContext: {}
+
+# JWT configuration
+jwt:
+  secret: changeme-in-production
+  accessExpiryMins: 15
+  refreshExpiryDays: 1
+
+# Application environment
+appConfig:
+  name: WhatoMate
+  environment: production
+  debug: false
+  encryptionKey: ""
+  readTimeout: 30
+  writeTimeout: 30
+  basePath: ""
+  allowedOrigins: ""
+
+# PostgreSQL dependency
+postgresql:
+  auth:
+    username: whatomate
+    password: changeme
+    database: whatomate
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: longhorn
+
+# Redis dependency
+redis:
+  auth:
+    enabled: false
+  architecture: standalone
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: longhorn
