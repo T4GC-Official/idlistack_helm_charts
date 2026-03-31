@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "listmonk.fullname" . }}-config
+  labels:
+    {{- include "listmonk.labels" . | nindent 4 }}
+data:
+  LISTMONK_db__host: {{ .Values.database.host | quote }}
+  LISTMONK_db__port: {{ .Values.database.port | quote }}
+  LISTMONK_db__user: {{ .Values.database.user | quote }}
+  LISTMONK_db__database: {{ .Values.database.name | quote }}
+  LISTMONK_app__address: "0.0.0.0:{{ .Values.listmonk.port }}"
+  LISTMONK_admin__address: "0.0.0.0:{{ .Values.listmonk.adminPort }}"

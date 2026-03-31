@@ -1,6 +1,20 @@
 apiVersion: v2
 name: listmonk
-description: Listmonk Helm chart (Local setup)
+description: Listmonk - Self-hosted, lightweight newsletter and mailing list manager
 type: application
-version: 0.1.0
+version: 1.0.0
 appVersion: "3.0.0"
+keywords:
+  - listmonk
+  - newsletter
+  - mailing-list
+  - email
+  - longhorn
+home: https://github.com/idlistack/listmonk
+icon: https://listmonk.app/assets/images/listmonk-logo.svg
+sources:
+  - https://github.com/knadh/listmonk
+  - https://github.com/postgres/postgres
+maintainers:
+  - name: IDLIStack Team
+    email: support@idlistack.in

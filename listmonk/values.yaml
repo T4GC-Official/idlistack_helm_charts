@@ -1,45 +1,89 @@
-image:
-  repository: listmonk/listmonk
-  tag: "latest"
+# Listmonk Helm Chart Values
+# Self-hosted newsletter and mailing list manager with PostgreSQL
 
+replicaCount: 1
+
+# Image configuration
+image:
+  listmonk:
+    repository: listmonk/listmonk
+    tag: "3.0.0"
+    pullPolicy: IfNotPresent
+  
+  postgres:
+    repository: postgres
+    tag: "15-alpine"
+    pullPolicy: IfNotPresent
+
+# Listmonk application settings
+listmonk:
+  port: 9000
+  adminPort: 9001
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+# PostgreSQL sidecar database
+postgres:
+  port: 5432
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+# Database configuration
+database:
+  name: listmonk
+  user: listmonk
+  password: changeme
+  rootPassword: rootchangeme
+  host: "127.0.0.1"
+  port: 5432
+
+# Storage configuration
 storage:
-  size: 5Gi
+  listmonkSize: 5Gi
+  postgresSize: 10Gi
   storageClass: longhorn
 
-database:
-  postgres:
-    db: listmonk
-    user: listmonk
-    password: supersecurepassword
-    host: 127.0.0.1
-    port: 5432
-
-resources:
-  listmonk:
-    requests:
-      cpu: "250m"
-      memory: "512Mi"
-    limits:
-      cpu: "500m"
-      memory: "1Gi"
-
-  postgres:
-    requests:
-      cpu: "250m"
-      memory: "512Mi"
-    limits:
-      cpu: "500m"
-      memory: "1Gi"
-
+# Labels for resource identification
 labels:
   organization: default-org
   environment: production
   appType: listmonk
   region: in-central
 
+# Ingress configuration
 ingress:
   enabled: true
   hosts:
     - host: ""
   tls:
     - secretName: ""
+      hosts: []
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 9000
+  targetPort: 9000
+
+# Service account
+serviceAccount:
+  create: true
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext: {}
+
+# Container security context
+securityContext: {}

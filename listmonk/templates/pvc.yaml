@@ -1,26 +1,27 @@
-# --- Listmonk PVC ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "listmonk.fullname" . }}-listmonk-pvc
+  name: {{ include "listmonk.fullname" . }}-listmonk
+  labels:
+    {{- include "listmonk.labels" . | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: {{ .Values.storage.storageClass }}
   resources:
     requests:
-      storage: {{ .Values.storage.size }}
-
+      storage: {{ .Values.storage.listmonkSize }}
 ---
-# --- Postgres PVC ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "listmonk.fullname" . }}-postgres-pvc
+  name: {{ include "listmonk.fullname" . }}-postgres
+  labels:
+    {{- include "listmonk.labels" . | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: {{ .Values.storage.storageClass }}
   resources:
     requests:
-      storage: {{ .Values.storage.size }}
+      storage: {{ .Values.storage.postgresSize }}
