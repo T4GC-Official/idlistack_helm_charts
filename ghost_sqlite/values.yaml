@@ -1,27 +1,69 @@
+---
+# -- Replica count
+replicaCount: 1
+
 image:
   repository: ghost
   tag: "5"
+  pullPolicy: IfNotPresent
 
-storage:
-  size: 1Gi
-  storageClass: longhorn
+# -- Ghost specific configuration
+ghost:
+  port: 2368
+  nodeEnv: production
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
 
+# -- Database configuration (SQLite)
 database:
   client: sqlite3
   connection:
     filename: /var/lib/ghost/content/data/ghost.db
 
+# -- Storage configuration
+storage:
+  size: 1Gi
+  storageClass: longhorn
+
+# -- Standard Kubernetes labels for all resources
 labels:
   organization: default-org
   environment: development
   appType: ghost_sqlite
   region: in-central
 
+# -- Ingress configuration
 ingress:
   enabled: true
   hosts:
-    - host:
+    - host: #Add Domain
   tls:
-    - secretName:
+    - secretName: #Add Domain
       hosts:
-        -
+        -  #Add Domain
+
+# -- Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 2368
+
+# -- ServiceAccount configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Pod annotations
+podAnnotations: {}
+
+# -- Pod security context
+podSecurityContext: {}
+
+# -- Security context for containers
+securityContext: {}

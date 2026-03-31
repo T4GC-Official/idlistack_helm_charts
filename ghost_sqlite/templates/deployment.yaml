@@ -3,66 +3,71 @@ kind: Deployment
 metadata:
   name: {{ include "ghost.fullname" . }}
   labels:
-    app.kubernetes.io/name: ghost
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    organization: {{ .Values.labels.organization }}
-    environment: {{ .Values.labels.environment }}
-    appType: {{ .Values.labels.appType }}
-    region: {{ .Values.labels.region }}
+    {{- include "ghost.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "ghost.fullname" . }}
+      {{- include "ghost.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      {{- if .Values.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
-        app: {{ include "ghost.fullname" . }}
-        orgname: {{ .Values.labels.organization | default "unknown-org" }}
+        {{- include "ghost.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
       containers:
         - name: ghost
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: IfNotPresent
-
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.securityContext }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: {{ .Values.ghost.resources.requests.cpu }}
+              memory: {{ .Values.ghost.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.ghost.resources.limits.cpu }}
+              memory: {{ .Values.ghost.resources.limits.memory }}
+          env:
+            - name: url
+              value: "https://{{ (index .Values.ingress.hosts 0).host | default "example.com" }}"
+            - name: database__client
+              value: {{ .Values.database.client | quote }}
+            - name: database__connection__filename
+              value: {{ .Values.database.connection.filename | quote }}
+            - name: NODE_ENV
+              value: {{ .Values.ghost.nodeEnv | quote }}
           ports:
-            - containerPort: 2368
-
+            - name: http
+              containerPort: {{ .Values.ghost.port }}
+              protocol: TCP
           readinessProbe:
             httpGet:
               path: /
-              port: 2368
+              port: http
             initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
-
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "256Mi"
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
-
-          env:
-            - name: url
-              value: "https://{{ index .Values.ingress.hosts 0 "host" | default "example.com" }}"
-
-            - name: database__client
-              value: "sqlite3"
-
-            - name: database__connection__filename
-              value: "/var/lib/ghost/content/data/ghost.db"
-
-            - name: NODE_ENV
-              value: "production"
-
           volumeMounts:
             - name: ghost-data
               mountPath: /var/lib/ghost/content
-
+            - name: ghost-config
+              mountPath: /var/lib/ghost/config.production.json
+              subPath: config.production.json
       volumes:
         - name: ghost-data
           persistentVolumeClaim:
             claimName: {{ include "ghost.fullname" . }}-pvc
+        - name: ghost-config
+          configMap:
+            name: {{ include "ghost.fullname" . }}-config

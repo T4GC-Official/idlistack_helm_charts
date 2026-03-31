@@ -1,24 +1,34 @@
+{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "ghost.fullname" . }}-ingress
+  labels:
+    {{- include "ghost.labels" . | nindent 4 }}
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     kubernetes.io/ingress.class: traefik
 spec:
   ingressClassName: traefik
   tls:
+    {{- range .Values.ingress.tls }}
     - hosts:
-        - {{ index .Values.ingress.hosts 0 "host" }}
-      secretName: {{ index .Values.ingress.tls 0 "secretName" }}
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
   rules:
-    - host: {{ index .Values.ingress.hosts 0 "host" }}
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: {{ include "ghost.fullname" . }}-service
+                name: {{ include "ghost.fullname" $ }}-service
                 port:
-                  number: 80
+                  number: {{ $.Values.service.port }}
+    {{- end }}
+{{- end }}

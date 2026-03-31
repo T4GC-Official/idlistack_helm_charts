@@ -1,43 +1,128 @@
-# Ghost Helm Chart (Multi-Tenant Ready)
+# Ghost CMS Helm Chart (SQLite)
 
-This Helm chart deploys **Ghost CMS** with **SQLite**, **Longhorn PVC**, and **Traefik Ingress** on Kubernetes.
-It supports multi-organization deployments using custom labels for easy management.
+Deploy Ghost CMS with SQLite database in Kubernetes using Helm.
 
-## 🏗 Features
-- SQLite database (no external DB)
-- Persistent Volume via Longhorn
-- Let's Encrypt SSL via Cert-Manager
-- Traefik Ingress
-- Multi-tenant labeling (organization, environment, appType)
+## What's Included
 
-## 🚀 Install
+- **Ghost CMS** - Blogging platform
+- **SQLite Database** - Lightweight embedded database
+- **Persistent Storage** - For Ghost content and database
+- **ConfigMap** - Ghost configuration
+- **Ingress** - Optional TLS-enabled web access
+
+## Prerequisites
+
+- Kubernetes cluster (v1.19+)
+- Helm 3+
+- Storage provisioner (Longhorn, EBS, NFS, etc.)
+
+## Quick Start
+
+### 1. Deploy to Kubernetes
 
 ```bash
-kubectl create ns ghost-org1
-helm install ghost-org1 ./ghost   -n ghost-org1   --set labels.organization=org1   --set labels.environment=production   --set ingress.hosts[0].host=ghost.org1.example.com   --set ingress.tls[0].secretName=ghost-org1-tls
+helm install ghost ./ghost_sqlite \
+  --namespace ghost \
+  --create-namespace
 ```
 
-## 🧹 Manage Deployments
+### 2. Access Ghost
 
-List all Ghost pods by organization:
+Get the service IP:
 ```bash
-kubectl get pods -A -l organization=org1
+kubectl get svc -n ghost
 ```
 
-Delete all Ghost resources for an org:
+Port-forward to access locally:
 ```bash
-kubectl delete all -l organization=org1,appType=ghost
+kubectl port-forward -n ghost svc/ghost-ghost-service 8080:80
 ```
 
-## 📦 Directory Structure
+Then open: **http://localhost:8080**
+
+## Configure Domain & TLS (Optional)
+
+To enable HTTPS with your domain:
+
+```bash
+helm install ghost ./ghost_sqlite \
+  --namespace ghost \
+  --create-namespace \
+  --set ingress.enabled=true \
+  --set "ingress.hosts[0].host=blog.yourdomain.com" \
+  --set "ingress.tls[0].secretName=ghost-tls" \
+  --set "ingress.tls[0].hosts[0]=blog.yourdomain.com"
 ```
-ghost/
-├── Chart.yaml
-├── values.yaml
-└── templates/
-    ├── _helpers.tpl
-    ├── deployment.yaml
-    ├── service.yaml
-    ├── pvc.yaml
-    └── ingress.yaml
+
+## Customization
+
+### Change Storage Size
+
+```bash
+--set storage.size=5Gi
 ```
+
+### Change Resource Limits
+
+```bash
+--set ghost.resources.requests.cpu=200m \
+--set ghost.resources.limits.memory=1Gi
+```
+
+### Use Custom Config File
+
+Create `custom-values.yaml`:
+
+```yaml
+storage:
+  size: 5Gi
+
+labels:
+  organization: my-org
+  environment: production
+```
+
+Then deploy:
+```bash
+helm install ghost ./ghost_sqlite --namespace ghost --create-namespace -f custom-values.yaml
+```
+
+## Common Commands
+
+**Check deployment status:**
+```bash
+kubectl get all -n ghost
+```
+
+**View logs:**
+```bash
+kubectl logs -n ghost deployment/ghost-ghost
+```
+
+**Upgrade deployment:**
+```bash
+helm upgrade ghost ./ghost_sqlite --namespace ghost
+```
+
+**Delete deployment:**
+```bash
+helm uninstall ghost --namespace ghost
+```
+
+## Architecture
+
+Single pod with Ghost CMS using SQLite as embedded database. SQLite stores data in the persistent volume, making it ideal for small to medium-sized blogs.
+
+**Advantages of SQLite:**
+- No database server needed
+- Simpler deployment
+- Lower resource overhead
+- Perfect for single-instance deployments
+
+**Limitations:**
+- Not suitable for high-concurrency scenarios
+- Cannot be easily scaled horizontally
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.

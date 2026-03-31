@@ -3,18 +3,13 @@ kind: Service
 metadata:
   name: {{ include "ghost.fullname" . }}-service
   labels:
-    app.kubernetes.io/name: ghost
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    organization: {{ .Values.labels.organization }}
-    environment: {{ .Values.labels.environment }}
-    appType: {{ .Values.labels.appType }}
-    region: {{ .Values.labels.region }}
+    {{- include "ghost.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.service.type }}
   selector:
-    app: {{ include "ghost.fullname" . }}
+    {{- include "ghost.selectorLabels" . | nindent 4 }}
   ports:
     - name: http
-      port: 80
-      targetPort: 2368
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.ghost.port }}
       protocol: TCP

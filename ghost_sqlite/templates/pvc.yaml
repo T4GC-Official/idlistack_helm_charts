@@ -3,17 +3,11 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ include "ghost.fullname" . }}-pvc
   labels:
-    app.kubernetes.io/name: ghost
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    organization: {{ .Values.labels.organization }}
-    environment: {{ .Values.labels.environment }}
-    appType: {{ .Values.labels.appType }}
-    region: {{ .Values.labels.region }}
+    {{- include "ghost.labels" . | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: {{ .Values.storage.storageClass }}
   resources:
     requests:
-      storage: {{ .Values.storage.size | default "1Gi" }}
-  storageClassName: {{ .Values.storage.storageClass }}
-  volumeMode: Filesystem
+      storage: {{ .Values.storage.size }}

@@ -1,0 +1,22 @@
+# Patterns to ignore when building packages.
+.DS_Store
+.git
+.gitignore
+.bzr
+.bzrignore
+.hg
+.hgignore
+.svn
+*.swp
+*.swo
+*~
+.idea
+*.iml
+.vscode
+*.swp
+*.iml
+.env
+.idea/
+dist/
+vendor/
+.vscode/
